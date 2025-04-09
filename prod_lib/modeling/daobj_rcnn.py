@@ -82,8 +82,8 @@ class DAobjTwoStagePseudoLabGeneralizedRCNN(GeneralizedRCNN):
         Args:
             backbone: a backbone module, must follow detectron2's backbone interface
             proposal_generator: a module that generates proposals using backbone features
-            roi_heads: a ROI head that performs per-region computation
-            pixel_mean, pixel_std: list or tuple with #channels element, representing
+            roi_heads: a ROI head that performs per-region computationnne
+            pixel_mean, pixel_std: list or tuple with #chals element, representing
                 the per-channel mean and std to be used to normalize the input image
             input_format: describe the meaning of channels of input. Needed by visualization
             vis_period: the period to run visualization. Set to 0 to disable.

@@ -7,7 +7,7 @@ from torch.nn.parallel import DistributedDataParallel
 from fvcore.nn.precise_bn import get_bn_modules
 import numpy as np
 from collections import OrderedDict
-
+from .TFD import WTFD
 import detectron2.utils.comm as comm
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.engine import DefaultTrainer, SimpleTrainer, TrainerBase
@@ -496,6 +496,7 @@ class ATeacherTrainer(DefaultTrainer):
 
     def run_step_full_semisup(self):
         self._trainer.iter = self.iter
+        self.wtf = WTFD(3, 3);
         assert self.model.training, "[UBTeacherTrainer] model was changed to eval mode!"
         start = time.perf_counter()
         data = next(self._trainer._data_loader_iter)
@@ -542,7 +543,31 @@ class ATeacherTrainer(DefaultTrainer):
             #  0. remove unlabeled data labels
             unlabel_data_q = self.remove_label(unlabel_data_q)
             unlabel_data_k = self.remove_label(unlabel_data_k)
-
+            self.wtf = self.wtf.to(self.model.device).float()
+            
+            processed_unlabel_k = []
+            for data_item in unlabel_data_k:
+                # 提取图像并进行类型转换
+                img = data_item["image"].float() / 255.0  # [0,255] → [0,1]
+                img = img.to(self.model.device)
+                
+                # 处理维度
+                if img.dim() == 3:
+                    img = img.unsqueeze(0)  # [C,H,W] → [1,C,H,W]
+                
+                # 应用小波变换
+                wavelet_img,_ = self.wtf(img)
+                
+                # 恢复维度和范围
+                wavelet_img = wavelet_img.squeeze(0)  # [1,C,H,W] → [C,H,W]
+                wavelet_img = (wavelet_img * 255).clamp(0, 255).byte()  # [0,1] → [0,255]
+                
+                # 更新数据项
+                new_data = copy.deepcopy(data_item)
+                new_data["image"] = wavelet_img.cpu()  # 移回CPU（如必要）
+                processed_unlabel_k.append(new_data)
+            
+            unlabel_data_k = processed_unlabel_k
             #  1. generate the pseudo-label using teacher model
             with torch.no_grad():
                 (

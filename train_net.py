@@ -33,36 +33,50 @@ def setup(args):
 
 
 def main(args):
+    # 设置配置参数
     cfg = setup(args)
+    # 根据配置选择不同的训练器
     if cfg.SEMISUPNET.Trainer == "ateacher":
         Trainer = ATeacherTrainer
     elif cfg.SEMISUPNET.Trainer == "baseline":
         Trainer = BaselineTrainer
     else:
+        # 如果配置中未找到训练器名称，抛出异常
         raise ValueError("Trainer Name is not found.")
 
+    # 如果只进行评估
     if args.eval_only:
         if cfg.SEMISUPNET.Trainer == "ateacher":
+            # 构建模型
             model = Trainer.build_model(cfg)
             model_teacher = Trainer.build_model(cfg)
+            # 构建集成模型
             ensem_ts_model = EnsembleTSModel(model_teacher, model)
 
+            # 从检查点恢复或加载模型权重
             DetectionCheckpointer(
                 ensem_ts_model, save_dir=cfg.OUTPUT_DIR
             ).resume_or_load(cfg.MODEL.WEIGHTS, resume=args.resume)
+            # 进行测试并返回结果
             res = Trainer.test(cfg, ensem_ts_model.modelTeacher)
 
         else:
+            # 构建模型
             model = Trainer.build_model(cfg)
+            # 从检查点恢复或加载模型权重
             DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
                 cfg.MODEL.WEIGHTS, resume=args.resume
             )
+            # 进行测试并返回结果
             res = Trainer.test(cfg, model)
         return res
 
+    # 创建训练器实例
     trainer = Trainer(cfg)
+    # 从检查点恢复或加载训练状态
     trainer.resume_or_load(resume=args.resume)
 
+    # 进行训练并返回结果
     return trainer.train()
 
 

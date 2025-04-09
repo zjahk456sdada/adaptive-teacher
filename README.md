@@ -124,9 +124,8 @@ python train_net.py \
 ```shell
 python train_net.py \
       --eval-only \
-      --num-gpus 8 \
-      --config configs/faster_rcnn_R101_cross_clipart.yaml \
-      MODEL.WEIGHTS <your weight>.pth
+      --config configs/faster_rcnn_R101_dior_cross_ssdd.yaml \
+      MODEL.WEIGHTS output/dior_ssdd_1/model_0019999.pth
 ```
 
 ## Results and Model Weights
